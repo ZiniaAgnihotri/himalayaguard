@@ -446,7 +446,7 @@ const GaugeCard=({risk,eta,t,delay})=>{
      <Chip color="#64748B">⏱ {eta} {t('mins')}</Chip>
    </div>
    <p className="mt-2.5 text-center text-[12px] font-medium leading-snug text-slate-300">
-     {t.riskMsg(risk, t('locName'), eta)}</p>
+     {t('riskMsg')(risk, t('locName'), eta)}</p>
  </div>);
 };
 
