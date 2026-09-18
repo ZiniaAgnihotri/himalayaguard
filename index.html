@@ -889,7 +889,7 @@ function App(){
    return()=>clearInterval(id);},[]);
  /* shelter occupancy drift */
  useEffect(()=>{const id=setInterval(()=>setShelters(ss=>ss.map(s=>{
-     const occ=clamp(s.occ+Math.round(rnd(-2,2)),Math.round(s.cap*.4),Math.round(s.cap*.97));return {...s,occ};}));},6000);
+     const occ=clamp(s.occ+Math.round(rnd(-2,2)),Math.round(s.cap*.4),Math.round(s.cap*.97));return {...s,occ};})),6000);
    return()=>clearInterval(id);},[]);
  /* scripted incoming SOS */
  useEffect(()=>{const id=setTimeout(()=>{if(simDone.current)return;simDone.current=true;
