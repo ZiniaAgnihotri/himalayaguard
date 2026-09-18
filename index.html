@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HimalayaGuard AI · हिमालय गार्ड — SIH 26192</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Mukta:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: { base:'#0A0D14', panel:'#121824', danger:'#EF4444', warn:'#F59E0B', safe:'#10B981', accent:'#3B82F6' },
+    fontFamily: { display:['Rajdhani','Mukta','sans-serif'], body:['Mukta','sans-serif'], mono:['"JetBrains Mono"','monospace'] }
+  }}
+};
+</script>
+
+<style>
+  html{scrollbar-color:#26334d #0a0d14}
+  body{background:#0A0D14;color:#E2E8F0;font-family:'Mukta',sans-serif;min-height:100vh;
+    background-image:
+      radial-gradient(1100px 520px at 88% -12%, rgba(59,130,246,.10), transparent 62%),
+      radial-gradient(900px 460px at -8% -4%, rgba(239,68,68,.09), transparent 60%),
+      repeating-radial-gradient(circle at 72% 28%, rgba(148,163,184,.026) 0 1px, transparent 1px 88px);}
+  ::selection{background:rgba(59,130,246,.4)}
+  :focus-visible{outline:2px solid #3B82F6;outline-offset:2px;border-radius:6px}
+  .glass{background:linear-gradient(160deg, rgba(18,24,36,.92), rgba(18,24,36,.78));
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(148,163,184,.12)}
+  .glass-soft{background:rgba(18,24,36,.6);backdrop-filter:blur(10px);border:1px solid rgba(148,163,184,.10)}
+  @keyframes tickerX{to{transform:translateX(-50%)}}
+  @keyframes flow{to{stroke-dashoffset:-120}}
+  @keyframes zonePulse{0%,100%{opacity:.14}50%{opacity:.28}}
+  @keyframes blinkDot{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  @keyframes sirenFlash{0%,100%{opacity:.95}50%{opacity:.25}}
+  @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .anim-rise{animation:rise .55s cubic-bezier(.22,1,.36,1) both}
+  .anim-slidein{animation:slideIn .35s cubic-bezier(.22,1,.36,1) both}
+  .anim-flow{animation:flow 3.2s linear infinite}
+  .anim-zone{animation:zonePulse 3.6s ease-in-out infinite}
+  .anim-blink{animation:blinkDot 1.4s ease-in-out infinite}
+  .anim-float{animation:floatY 3.5s ease-in-out infinite}
+  .ticker-track{animation:tickerX 34s linear infinite}
+  .ticker-wrap:hover .ticker-track{animation-play-state:paused}
+  .mtext{font:600 9.5px 'Mukta';fill:#93A7C4;paint-order:stroke;stroke:#0A0D14;stroke-width:3px}
+  .zlabel{font:700 10px 'Rajdhani';letter-spacing:.14em}
+  .plabel{font:600 9.5px 'JetBrains Mono';fill:#64748B}
+  .rlabel{font:600 11px 'Mukta';fill:#60A5FA;opacity:.85}
+  .marker{cursor:pointer}
+  .marker:hover{filter:drop-shadow(0 0 7px rgba(226,232,240,.45))}
+  .input-dark{background:#0D1220;border:1px solid rgba(148,163,184,.16);color:#E2E8F0;border-radius:.65rem;
+    padding:.6rem .8rem;font-size:.875rem;width:100%;transition:border-color .2s, box-shadow .2s}
+  .input-dark:focus{outline:none;border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+  .input-dark::placeholder{color:#475569}
+  .btn-press{transition:transform .12s, box-shadow .2s, opacity .2s}
+  .btn-press:active{transform:scale(.96)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:#0a0d14}
+  ::-webkit-scrollbar-thumb{background:#26334d;border-radius:99px;border:2px solid #0a0d14}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useRef,useMemo,useCallback} = React;
+
+/* ══════════════════════════════════════════════════════════════════
+   firebaseConfig.js — SERVICE MODULE (drop-in Firestore wiring)
+   ──────────────────────────────────────────────────────────────────
+   PRODUCTION SWAP (real backend in 3 steps):
+     1. npm i firebase            (or ESM CDN in your bundler)
+     2. import { initializeApp }        from "firebase/app";
+        import { getFirestore, collection, addDoc, updateDoc, doc,
+                 onSnapshot, query, orderBy } from "firebase/firestore";
+     3. export const db = getFirestore(initializeApp(firebaseConfig));
+
+   Collections used by this app:
+     • "sos_alerts" → addDoc(collection(db,"sos_alerts"), payload)
+                      onSnapshot(query(collection(db,"sos_alerts"),
+                      orderBy("ts","desc")), snap => …)
+     • "shelters"   → live occupancy { occ, cap }
+
+   The MockFirestore below mirrors the exact same surface, so the UI
+   code never changes when you go live. ══════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIza…_YOUR_KEY_HERE",
+  authDomain:        "himalayaguard-ai.firebaseapp.com",
+  projectId:         "himalayaguard-ai",
+  storageBucket:     "himalayaguard-ai.appspot.com",
+  messagingSenderId: "1044926637001",
+  appId:             "1:1044926637001:web:sih26192ndrf"
+};
+const lsGet=(k,f)=>{try{const v=localStorage.getItem(k);return v==null?f:v}catch(e){return f}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+
+class MockFirestore{
+  constructor(){this.listeners=[];}
+  collection(){return {add:this.add.bind(this), subscribe:this.subscribe.bind(this)};}
+  subscribe(fn){this.listeners.push(fn);return ()=>{this.listeners=this.listeners.filter(x=>x!==fn)};}
+  add(doc){const saved=JSON.parse(lsGet('hg_user_sos','[]'));saved.unshift(doc);
+    lsSet('hg_user_sos',JSON.stringify(saved));this.listeners.forEach(f=>f(doc));return doc;}
+}
+const DB = new MockFirestore();
+
+/* ══════════════ ICONS (Lucide paths, inline) ══════════════ */
+const P = {
+mountain:<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>,
+shield:<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
+tent:<><path d="M3.5 21 14 3"/><path d="M20.5 21 10 3"/><path d="M15.5 21 12 15l-3.5 6"/><path d="M2 21h20"/></>,
+cross:<path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h5v5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"/>,
+alert:<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 20h16a2 2 0 0 0 1.73-2Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></>,
+satellite:<><path d="M13 7 9 3 5 7l4 4"/><path d="m17 11 4 4-4 4-4-4"/><path d="m8 12 4 4 6-6-4-4Z"/><path d="m16 8 3-3"/><path d="M9 21a6 6 0 0 0-6-6"/></>,
+waves:<><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></>,
+layers:<><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></>,
+cloudRain:<><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></>,
+activity:<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>,
+phone:<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>,
+mapPin:<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>,
+users:<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+user:<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+send:<><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>,
+x:<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>,
+globe:<><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></>,
+siren:<><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 18 5"/><path d="M2 12h1"/><path d="M12 2v1"/><path d="m4.929 4.929.707.707"/><path d="M12 12v6"/></>,
+download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></>,
+checkCircle:<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></>,
+locate:<><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/></>,
+nav:<polygon points="3 11 22 2 13 21 11 13 3 11"/>,
+heart:<><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></>,
+clock:<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+bell:<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>,
+truck:<><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></>,
+radio:<><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></>,
+minus:<path d="M5 12h14"/>,
+plus:<><path d="M5 12h14"/><path d="M12 5v14"/></>,
+chevR:<path d="m9 18 6-6-6-6"/>
+};
+const Icon = ({name,className='',style,sw=2}) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw}
+       strokeLinecap="round" strokeLinejoin="round" className={className} style={style} aria-hidden="true">
+    {P[name]}
+  </svg>
+);
+
+/* ══════════════ i18n DICTIONARY ══════════════ */
+const L = {
+en:{
+ appName:"HimalayaGuard AI", sub:"हिमालय गार्ड", tagline:"Integrated Himalayan Disaster Intelligence",
+ live:"LIVE", citizen:"Citizen View", commander:"NDRF Commander", watchPill:"FLASH FLOOD WATCH",
+ feedsTitle:"Multi-Source Intelligence", feedsSub:"Live multi-hazard sensor fusion · Garhwal sector",
+ sat:"Satellite Precipitation", satSub:"INSAT-3D · Cloudburst Index",
+ river:"River Gauge — Alaknanda · Srinagar", riverSub:"CWIC telemetry · danger mark 66.0 m",
+ aboveDanger:"m above danger mark",
+ soil:"Soil Moisture & Slope Stability", soilSub:"In-situ probes · Landslide Risk Index",
+ crit:"CRITICAL", warn:"ELEVATED", ok:"NORMAL",
+ aiTitle:"AI Flash Flood Probability", aiSub:"Deep-fusion nowcast · 15-min refresh",
+ riskHigh:"HIGH RISK", riskMod:"MODERATE", riskLow:"LOW",
+ locName:"Chamoli–Srinagar valley", mins:"mins",
+ mapTitle:"Topographic Risk Map — Garhwal Himalaya", mapSub:"Elevation contours · drainage basin · live risk zones",
+ lgHigh:"High Inundation Risk", lgMod:"Moderate Risk", lgSafe:"Safe High-Ground", liveTel:"LIVE TELEMETRY",
+ sosBtn:"BROADCAST SOS", sosHint:"Tap for emergency assistance",
+ typeNdrf:"NDRF Rescue Station", typeCamp:"Relief Camp", typeMed:"Medical Unit", typeBlock:"Landslide / Road Blocked", typeGauge:"River Gauge Station",
+ mTitle:"Request Emergency SOS", mDesc:"Your alert is transmitted instantly to the NDRF control room with your live location.",
+ fName:"Full Name", fContact:"Contact Number", fSituation:"Situation Type", fPeople:"Number of People Stranded",
+ fLandmark:"Nearest Landmark / Location",
+ phName:"e.g., Ramesh Negi", phContact:"10-digit mobile", phLandmark:"e.g., Near Hanuman Mandir, riverside",
+ sWater:"Trapped by Water", sLand:"Landslide Blockage", sMed:"Medical Emergency",
+ gpsLocating:"Detecting GPS…", gpsOk:"GPS LOCKED", gpsFail:"GPS unavailable — enter landmark manually",
+ send:"Send SOS to NDRF",
+ errName:"Please enter your name", errPhone:"Enter a valid 10-digit number", errLoc:"GPS failed — please enter a landmark",
+ toastSos:"SOS transmitted to NDRF Control Room — dispatch initiated",
+ toastDispatch:"Rescue team dispatched", toastEvac:"Marked evacuated — souls safe",
+ toastSiren:"Evacuation siren broadcast to zone towers", toastNew:"New SOS received", toastReport:"Incident report downloaded",
+ sheltersTitle:"Safe Shelters", beds:"beds free", capLbl:"Capacity", occLbl:"Occupancy",
+ dirTitle:"Emergency Directory", h1078:"NDRF Helpline", h1070:"SDMA Control Room", hAir:"Air Rescue Coordination",
+ cmdHead:"NDRF Commander Dashboard", cmdSub:"Unified incident command · Garhwal sector",
+ stActive:"Active SOS", stTeams:"Teams Deployed", stEvac:"Evacuated Today", stResp:"Avg Response",
+ feedTitle:"Incoming SOS Alerts", all:"All",
+ pCritical:"CRITICAL", pHigh:"HIGH", pMedium:"MEDIUM",
+ sNew:"NEW", sDispatched:"TEAM DISPATCHED", sEvacuated:"EVACUATED",
+ people:"people", minAgo:"min ago", justNow:"just now", teamLbl:"Team",
+ dispatch:"Dispatch Team", markEvac:"Mark Evacuated",
+ siren:"Broadcast Area Evacuation Siren", report:"Download Incident Summary (CSV)",
+ rosterTitle:"Response Assets", standby:"STANDBY", deployed:"DEPLOYED", airReady:"AIR ASSET READY",
+ sirenTitle:"MASS EVACUATION ALERT", sirenZone:"Zone: Srinagar Valley · NH-58 corridor",
+ sirenSub:"All citizens proceed to marked safe shelters immediately. NDRF teams are en route.",
+ ack:"Acknowledge",
+ footer1:"Smart India Hackathon · Problem Statement 26192 · NDRF / Ministry of Home Affairs",
+ footer2:"Simulation demo — sensor data is illustrative",
+ noSos:"No alerts in this category", bedsLive:"beds free now",
+ riskMsg:(v,l,m)=>`${v}% probability of flash flood in ${l} within ${m} mins`,
+ etaLbl:"predicted window"
+},
+hi:{
+ appName:"हिमालय गार्ड", sub:"HimalayaGuard AI", tagline:"एकीकृत हिमालय आपदा इंटेलिजेंस",
+ live:"लाइव", citizen:"नागरिक दृश्य", commander:"एनडीआरएफ कमांडर", watchPill:"फ्लैश फ्लड निगरानी",
+ feedsTitle:"मल्टी-सोर्स इंटेलिजेंस", feedsSub:"लाइव बहु-आपदा सेंसर फ्यूज़न · गढ़वाल सेक्टर",
+ sat:"उपग्रह वर्षा मापन", satSub:"इनसैट-3D · क्लाउडबर्स्ट इंडेक्स",
+ river:"नदी गेज — अलकनंदा · श्रीनगर", riverSub:"CWIC टेलीमेट्री · खतरा चिह्न 66.0 मी",
+ aboveDanger:"मी खतरे के निशान से ऊपर",
+ soil:"मृदा नमी एवं ढलान स्थिरता", soilSub:"इन-सीटू प्रोब · भूस्खलन जोखिम सूचकांक",
+ crit:"गंभीर", warn:"बढ़ा हुआ", ok:"सामान्य",
+ aiTitle:"एआई फ्लैश फ्लड संभावना", aiSub:"डीप-फ्यूज़न नॉवकास्ट · 15-मिनट रिफ्रेश",
+ riskHigh:"उच्च जोखिम", riskMod:"मध्यम जोखिम", riskLow:"कम जोखिम",
+ locName:"चमोली–श्रीनगर घाटी", mins:"मिनट",
+ mapTitle:"स्थलाकृतिक जोखिम मानचित्र — गढ़वाल हिमालय", mapSub:"ऊँचाई समोच्चा · अपवाह बेसिन · लाइव जोखिम क्षेत्र",
+ lgHigh:"उच्च जलभराव जोखिम", lgMod:"मध्यम जोखिम", lgSafe:"सुरक्षित ऊँचा क्षेत्र", liveTel:"लाइव टेलीमेट्री",
+ sosBtn:"आपातकालीन सहायता", sosHint:"आपात सहायता के लिए टैप करें",
+ typeNdrf:"एनडीआरएफ बचाव केंद्र", typeCamp:"राहत शिविर", typeMed:"चिकित्सा इकाई", typeBlock:"भूस्खलन / मार्ग अवरुद्ध", typeGauge:"नदी गेज केंद्र",
+ mTitle:"आपातकालीन एसओएस अनुरोध", mDesc:"आपका अलर्ट आपकी लाइव लोकेशन के साथ तुरंत एनडीआरएफ नियंत्रण कक्ष को भेजा जाएगा।",
+ fName:"पूरा नाम", fContact:"संपर्क नंबर", fSituation:"स्थिति का प्रकार", fPeople:"फंसे हुए लोगों की संख्या",
+ fLandmark:"नज़दीकी लैंडमार्क / स्थान",
+ phName:"जैसे — रमेश नेगी", phContact:"10 अंकों का मोबाइल", phLandmark:"जैसे — हनुमान मंदिर के पास, नदी किनारा",
+ sWater:"जलभराव में फंसे", sLand:"भूस्खलन अवरोध", sMed:"चिकित्सा आपातकाल",
+ gpsLocating:"GPS प्राप्त किया जा रहा है…", gpsOk:"GPS लॉक", gpsFail:"GPS उपलब्ध नहीं — लैंडमार्क स्वयं दर्ज करें",
+ send:"एनडीआरएफ को अलर्ट भेजें",
+ errName:"कृपया अपना नाम दर्ज करें", errPhone:"मान्य 10-अंकीय नंबर दर्ज करें", errLoc:"GPS विफल — कृपया लैंडमार्क दर्ज करें",
+ toastSos:"SOS एनडीआरएफ नियंत्रण कक्ष को भेजा गया — टीम रवाना की जा रही है",
+ toastDispatch:"बचाव टीम रवाना की गई", toastEvac:"निकासी पूर्ण चिह्नित — सभी सुरक्षित",
+ toastSiren:"क्षेत्र टावरों पर निकासी सायरन प्रसारित", toastNew:"नया SOS प्राप्त हुआ", toastReport:"घटना रिपोर्ट डाउनलोड हुई",
+ sheltersTitle:"सुरक्षित राहत शिविर", beds:"बिस्तर खाली", capLbl:"क्षमता", occLbl:"भराव",
+ dirTitle:"आपातकालीन निर्देशिका", h1078:"एनडीआरएफ हेल्पलाइन", h1070:"एसडीएमए नियंत्रण कक्ष", hAir:"हवाई बचाव समन्वय",
+ cmdHead:"एनडीआरएफ कमांडर डैशबोर्ड", cmdSub:"एकीकृत घटना कमान · गढ़वाल सेक्टर",
+ stActive:"सक्रिय SOS", stTeams:"तैनात टीमें", stEvac:"आज सुरक्षित निकाले गए", stResp:"औसत प्रतिक्रिया",
+ feedTitle:"प्राप्त SOS अलर्ट", all:"सभी",
+ pCritical:"गंभीर", pHigh:"उच्च", pMedium:"मध्यम",
+ sNew:"नया", sDispatched:"टीम रवाना", sEvacuated:"निकासी पूर्ण",
+ people:"लोग", minAgo:"मिनट पहले", justNow:"अभी-अभी", teamLbl:"टीम",
+ dispatch:"टीम रवाना करें", markEvac:"निकासी पूर्ण चिह्नित करें",
+ siren:"क्षेत्र निकासी सायरन प्रसारित करें", report:"घटना सारांश डाउनलोड करें (CSV)",
+ rosterTitle:"प्रतिक्रिया संसाधन", standby:"तैयार", deployed:"तैनात", airReady:"हवाई सहायता तैयार",
+ sirenTitle:"सामूहिक निकासी चेतावनी", sirenZone:"क्षेत्र: श्रीनगर घाटी · एनएच-58 कॉरिडोर",
+ sirenSub:"सभी नागरिक तुरंत चिह्नित सुरक्षित शिविरों की ओर जाएँ। एनडीआरएफ टीमें मार्ग में हैं।",
+ ack:"स्वीकार करें",
+ footer1:"स्मार्ट इंडिया हैकाथॉन · समस्या कथन 26192 · एनडीआरएफ / गृह मंत्रालय",
+ footer2:"सिमुलेशन डेमो — सेंसर डेटा सांकेतिक है",
+ noSos:"इस श्रेणी में कोई अलर्ट नहीं", bedsLive:"बिस्तर अभी खाली",
+ riskMsg:(v,l,m)=>`${l} में अगले ${m} मिनट के भीतर फ्लैश फ्लड की ${v}% संभावना`,
+ etaLbl:"अनुमानित विंडो"
+}};
+
+/* ══════════════ STATIC DOMAIN DATA ══════════════ */
+const TICKS=[
+ {en:"Cloudburst alert: Chamoli & Rudraprayag districts — next 3 hours", hi:"क्लाउडबर्स्ट अलर्ट: चमोली व रुद्रप्रयाग जनपद — अगले 3 घंटे"},
+ {en:"Alaknanda flowing 2.6 m above danger mark at Srinagar gauge", hi:"अलकनंदा श्रीनगर गेज पर खतरे के निशान से 2.6 मी ऊपर"},
+ {en:"Landslide on NH-58 near Lambagarh — diversion via NH-7", hi:"एनएच-58 लंबागढ़ पर भूस्खलन — एनएच-7 से डायवर्जन"},
+ {en:"NDRF teams pre-positioned at 6 forward locations", hi:"एनडीआरएफ टीमें 6 अग्रिम स्थानों पर पूर्व-तैनात"}];
+
+const TYPE_META={ ndrf:{icon:'shield',color:'#3B82F6',label:'typeNdrf'},
+ camp:{icon:'tent',color:'#10B981',label:'typeCamp'},
+ med:{icon:'cross',color:'#FB7185',label:'typeMed'},
+ block:{icon:'alert',color:'#F59E0B',label:'typeBlock'},
+ gauge:{icon:'radio',color:'#60A5FA',label:'typeGauge'} };
+
+const MARKERS=[
+ {id:'ndrf1',type:'ndrf',x:430,y:468,coord:'30.2245 N · 78.7821 E',
+  name:{en:'NDRF Base Camp — Srinagar',hi:'एनडीआरएफ बेस कैंप — श्रीनगर'},
+  desc:{en:'3 rapid-response teams · 42 personnel · 2 assault boats',hi:'3 त्वरित-प्रतिक्रिया टीमें · 42 कार्मिक · 2 असॉल्ट बोट'}},
+ {id:'ndrf2',type:'ndrf',x:662,y:500,coord:'30.2831 N · 78.9823 E',
+  name:{en:'NDRF Post — Rudraprayag',hi:'एनडीआरएफ चौकी — रुद्रप्रयाग'},
+  desc:{en:'Confluence response unit · deep-diver squad',hi:'संगम प्रतिक्रिया इकाई · गोताखोर दल'}},
+ {id:'camp1',type:'camp',x:366,y:442,shelter:'sh1',coord:'30.2239 N · 78.7791 E',
+  name:{en:'Relief Camp — GIC Srinagar',hi:'राहत शिविर — जीआईसी श्रीनगर'},
+  desc:{en:'Capacity 350 · food & medical aid on site',hi:'क्षमता 350 · भोजन व चिकित्सा सहायता उपलब्ध'}},
+ {id:'camp2',type:'camp',x:636,y:548,shelter:'sh2',coord:'30.2761 N · 79.1045 E',
+  name:{en:'Relief Camp — Gauchar',hi:'राहत शिविर — गौचर'},
+  desc:{en:'Capacity 200 · helipad 400 m east',hi:'क्षमता 200 · हेलीपैड 400 मी पूरब'}},
+ {id:'med1',type:'med',x:706,y:536,coord:'30.2876 N · 78.9841 E',
+  name:{en:'Medical Unit — Dist. Hospital Rudraprayag',hi:'चिकित्सा इकाई — जिला चिकित्सालय रुद्रप्रयाग'},
+  desc:{en:'Trauma bay · 2 ambulances · oxygen bank',hi:'ट्रॉमा बे · 2 एम्बुलेंस · ऑक्सीजन बैंक'}},
+ {id:'block1',type:'block',x:470,y:300,coord:'30.3010 N · 78.9431 E',
+  name:{en:'Landslide — NH-58, Lambagarh',hi:'भूस्खलन — एनएच-58, लंबागढ़'},
+  desc:{en:'Road blocked since 05:40 · BRO clearance underway',hi:'05:40 से मार्ग अवरुद्ध · बीआरओ सफाई जारी'}},
+ {id:'block2',type:'block',x:250,y:300,coord:'30.3288 N · 78.8705 E',
+  name:{en:'Road Blocked — Tilwara Bend',hi:'मार्ग अवरुद्ध — तिलवाड़ा मोड़'},
+  desc:{en:'Debris on carriageway · single-lane diversion',hi:'मलबा · एक-लेन डायवर्जन चालू'}},
+ {id:'gauge1',type:'gauge',x:330,y:396,coord:'30.2287 N · 78.7810 E',
+  name:{en:'River Gauge — Srinagar',hi:'नदी गेज — श्रीनगर'},
+  desc:{en:'Alaknanda · danger mark 66.0 m · CWIC linked',hi:'अलकनंदा · खतरा चिह्न 66.0 मी · CWIC से जुड़ा'}}];
+
+const SHELTERS=[
+ {id:'sh1',name:{en:'Govt. Inter College Shelter',hi:'राजकीय इंटर कॉलेज आश्रय'},area:{en:'Srinagar, Garhwal',hi:'श्रीनगर, गढ़वाल'},cap:350,occ:308},
+ {id:'sh2',name:{en:'Relief Camp Gauchar',hi:'राहत शिविर गौचर'},area:{en:'Gauchar, Karnaprayag',hi:'गौचर, कर्णप्रयाग'},cap:200,occ:141},
+ {id:'sh3',name:{en:'Community Hall Tilwara',hi:'सामुदायिक भवन तिलवाड़ा'},area:{en:'Tilwara, Rudraprayag',hi:'तिलवाड़ा, रुद्रप्रयाग'},cap:150,occ:96},
+ {id:'sh4',name:{en:'NDRF Transit Camp',hi:'एनडीआरएफ पारगमन शिविर'},area:{en:'Rudraprayag Confluence',hi:'रुद्रप्रयाग संगम'},cap:120,occ:112},
+ {id:'sh5',name:{en:'Army Welfare Rest Camp',hi:'सेना कल्याण विश्राम शिविर'},area:{en:'Devprayag Ridge',hi:'देवप्रयाग रिज'},cap:180,occ:63}];
+
+const SEED_SOS=[
+ {id:'SOS-7841',ts:Date.now()-6*60000, name:'Ramesh Negi', phone:'9812304577', sit:'water', people:12,
+  loc:'Srinagar riverside, near bus stand', gps:'30.2239, 78.7791', priority:'critical', status:'new'},
+ {id:'SOS-7838',ts:Date.now()-14*60000, name:'Sunita Rawat', phone:'9756120034', sit:'landslide', people:5,
+  loc:'NH-58, Lambagarh bend', gps:'30.3010, 78.9431', priority:'high', status:'dispatched', team:'NDRF-12 · Bhatni'},
+ {id:'SOS-7833',ts:Date.now()-26*60000, name:'Vikram Bisht', phone:'9897001123', sit:'medical', people:1,
+  loc:'Gauchar helipad area', gps:'30.2761, 79.1045', priority:'medium', status:'new'}];
+
+const SITUATIONS=[{id:'water',icon:'waves',key:'sWater',tint:'#3B82F6'},
+                  {id:'landslide',icon:'mountain',key:'sLand',tint:'#F59E0B'},
+                  {id:'medical',icon:'heart',key:'sMed',tint:'#EF4444'}];
+const PRIO={critical:{color:'#EF4444',key:'pCritical',w:3},high:{color:'#F59E0B',key:'pHigh',w:2},medium:{color:'#3B82F6',key:'pMedium',w:1}};
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+/* ══════════════ SMALL UI ATOMS ══════════════ */
+const Chip=({color,children,blink})=>(
+ <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider"
+       style={{background:color+'22',color:border:'1px solid '+color+'55'}}>{children}</span>);
+
+const Spark=({data,color})=>{
+ if(!data||data.length<2)return null;
+ const min=Math.min(...data),max=Math.max(...data),sp=(max-min)||1;
+ const pts=data.map((v,i)=>`${(i/(data.length-1)*100).toFixed(1)},${(26-((v-min)/sp)*22).toFixed(1)}`).join(' ');
+ return <svg viewBox="0 0 100 28" className="h-7 w-24 opacity-90"><polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"/></svg>;
+};
+
+const Toast=({t,dismiss})=>{
+ useEffect(()=>{const id=setTimeout(()=>dismiss(t.id),4200);return()=>clearTimeout(id)},[]);
+ const c={ok:'#10B981',warn:'#F59E0B',danger:'#EF4444',info:'#3B82F6'}[t.type]||'#3B82F6';
+ return <div className="glass anim-slidein flex items-center gap-2.5 rounded-xl px-4 py-3 shadow-2xl" style={{borderLeft:`3px solid ${c}`}}>
+   <Icon name={t.icon||'bell'} className="h-4 w-4 shrink-0" style={{color:c}}/>
+   <p className="text-sm font-medium text-slate-100">{t.msg}</p></div>;
+};
+
+/* ══════════════ HEADER ══════════════ */
+const Clock=({lang})=>{
+ const [now,setNow]=useState(new Date());
+ useEffect(()=>{const id=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(id)},[]);
+ return <span className="font-mono text-xs text-slate-400 tabular-nums">
+   {now.toLocaleTimeString(lang==='hi'?'hi-IN':'en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} IST</span>;
+};
+
+const Header=({lang,setLang,view,setView,risk,t})=>{
+ const lvl = risk>=75?{c:'#EF4444',k:'riskHigh'}:risk>=45?{c:'#F59E0B',k:'riskMod'}:{c:'#10B981',k:'riskLow'};
+ return (
+ <header className="glass sticky top-0 z-40 border-b border-slate-700/30">
+  <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+   <div className="flex items-center gap-3">
+    <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-accent/40 bg-gradient-to-b from-[#16233c] to-[#0d1424] shadow-[0_0_24px_rgba(59,130,246,.25)]">
+      <Icon name="mountain" className="h-6 w-6 text-accent"/>
+      <Icon name="shield" className="absolute -right-1 -bottom-1 h-4 w-4 text-danger" sw={2.5}/>
+    </div>
+    <div className="leading-tight">
+      <h1 className="font-display text-xl font-bold tracking-wide text-slate-50">{t('appName')}
+        <span className="ml-2 align-middle text-[11px] font-semibold tracking-widest text-accent">{t('sub')}</span></h1>
+      <p className="text-[11px] text-slate-400">{t('tagline')}</p>
+    </div>
+   </div>
+   <div className="hidden items-center gap-2 md:flex">
+     <span className="anim-blink h-2 w-2 rounded-full bg-danger"></span>
+     <span className="text-[11px] font-bold tracking-widest text-danger">{t('live')}</span>
+     <Clock lang={lang}/>
+   </div>
+   <div className="ml-auto flex flex-wrap items-center gap-2">
+    <div className="hidden items-center sm:inline-flex">
+      <Chip color={lvl.c} blink>{t('watchPill')}</Chip>
+    </div>
+    {/* Language toggle */}
+    <div className="glass-soft flex items-center rounded-full p-1" role="group" aria-label="Language">
+      <Icon name="globe" className="mx-1.5 h-3.5 w-3.5 text-slate-400"/>
+      <button onClick={()=>setLang('en')} className={`btn-press rounded-full px-3 py-1 text-xs font-semibold ${lang==='en'?'bg-accent text-white shadow':'text-slate-300 hover:text-white'}`}>English</button>
+      <button onClick={()=>setLang('hi')} className={`btn-press rounded-full px-3 py-1 text-xs font-semibold ${lang==='hi'?'bg-accent text-white shadow':'text-slate-300 hover:text-white'}`}>हिन्दी</button>
+    </div>
+    {/* View toggle */}
+    <div className="glass-soft flex items-center rounded-full p-1" role="group" aria-label="View">
+      <button onClick={()=>setView('citizen')} className={`btn-press flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${view==='citizen'?'bg-slate-100 text-[#0A0D14]':'text-slate-300 hover:text-white'}`}>
+        <Icon name="user" className="h-3.5 w-3.5"/><span className="hidden sm:inline">{t('citizen')}</span></button>
+      <button onClick={()=>setView('commander')} className={`btn-press flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${view==='commander'?'bg-danger text-white':'text-slate-300 hover:text-white'}`}>
+        <Icon name="shield" className="h-3.5 w-3.5"/><span className="hidden sm:inline">{t('commander')}</span></button>
+    </div>
+   </div>
+  </div>
+ </header>);
+};
+
+const Ticker=({lang,t})=>(
+ <div className="ticker-wrap relative overflow-hidden border-b border-red-500/20 bg-gradient-to-r from-danger/15 via-panel to-danger/15">
+   <div className="ticker-track flex w-max items-center gap-10 py-1.5">
+     {[0,1].map(k=>(
+       <div key={k} className="flex items-center gap-10">
+        {TICKS.map((x,i)=>(<span key={i} className="flex items-center gap-10 whitespace-nowrap text-[12.5px] font-medium text-red-200">
+          <span className="flex items-center gap-2"><Icon name="alert" className="h-3.5 w-3.5 text-danger"/>{x[lang]}</span>
+          <span className="text-danger/60">◆</span></span>))}
+       </div>))}
+   </div>
+ </div>);
+
+/* ══════════════ DATA FEED CARDS + GAUGE ══════════════ */
+const FeedCard=({icon,title,sub,value,unit,status,statusColor,spark,sparkColor,footL,footR,delay})=>(
+ <div className="glass anim-rise rounded-2xl p-4" style={{animationDelay:delay}}>
+   <div className="flex items-start justify-between gap-2">
+     <div className="flex items-center gap-2.5">
+       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{background:sparkColor+'1c'}}>
+         <Icon name={icon} className="h-[18px] w-[18px]" style={{color:sparkColor}}/></span>
+       <div><p className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-300">{title}</p>
+            <p className="text-[10px] text-slate-500">{sub}</p></div>
+     </div>
+     <Chip color={statusColor}>{status}</Chip>
+   </div>
+   <div className="mt-3 flex items-end justify-between gap-2">
+     <p className="font-display text-[30px] font-bold leading-none text-slate-50">
+        {value}<span className="ml-1 text-sm font-semibold text-slate-400">{unit}</span></p>
+     <Spark data={spark} color={sparkColor}/>
+   </div>
+   <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+     <span>{footL}</span><span className="font-mono text-slate-300">{footR}</span></div>
+ </div>);
+
+const GaugeCard=({risk,eta,t,delay})=>{
+ const R=80,C=Math.PI*R,off=C*(1-risk/100);
+ const lvl=risk>=75?{c:'#EF4444',k:'riskHigh'}:risk>=45?{c:'#F59E0B',k:'riskMod'}:{c:'#10B981',k:'riskLow'};
+ return (
+ <div className="glass anim-rise relative overflow-hidden rounded-2xl p-4" style={{animationDelay:delay}}>
+   <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full" style={{background:`radial-gradient(circle, ${lvl.c}30, transparent 70%)`}}/>
+   <div className="flex items-center gap-2.5">
+     <span className="grid h-9 w-9 place-items-center rounded-lg" style={{background:lvl.c+'1c'}}>
+       <Icon name="activity" className="h-[18px] w-[18px]" style={{color:lvl.c}}/></span>
+     <div><p className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-300">{t('aiTitle')}</p>
+          <p className="text-[10px] text-slate-500">{t('aiSub')}</p></div>
+   </div>
+   <div className="relative mx-auto mt-1 w-[190px]">
+     <svg viewBox="0 0 200 108">
+       <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0">
+         <stop offset="0" stopColor="#F59E0B"/><stop offset="1" stopColor="#EF4444"/></linearGradient></defs>
+       <path d="M 20 100 A 80 80 0 0 1 180 100" stroke="#1E293B" strokeWidth="13" fill="none" strokeLinecap="round"/>
+       <path d="M 20 100 A 80 80 0 0 1 180 100" stroke="url(#gg)" strokeWidth="13" fill="none" strokeLinecap="round"
+             strokeDasharray={C} strokeDashoffset={off} style={{transition:'stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)'}}/>
+       {[0,25,50,75,100].map(v=>{const a=Math.PI*(1-v/100);
+         return <line key={v} x1={100+64*Math.cos(a)} y1={100-64*Math.sin(a)} x2={100+70*Math.cos(a)} y2={100-70*Math.sin(a)} stroke="#475569" strokeWidth="1.5"/>})}
+     </svg>
+     <div className="absolute inset-x-0 bottom-0 text-center">
+       <p className="font-display text-[42px] font-bold leading-none" style={{color:lvl.c}}>{risk}<span className="text-xl">%</span></p>
+     </div>
+   </div>
+   <div className="mt-2 flex items-center justify-center gap-2">
+     <Chip color={lvl.c} blink>{t(lvl.k)}</Chip>
+     <Chip color="#64748B">⏱ {eta} {t('mins')}</Chip>
+   </div>
+   <p className="mt-2.5 text-center text-[12px] font-medium leading-snug text-slate-300">
+     {t.riskMsg(risk, t('locName'), eta)}</p>
+ </div>);
+};
+
+/* ══════════════ TOPOGRAPHIC MAP ══════════════ */
+function contour(cx,cy,r,seed){
+ const N=26,pts=[];
+ for(let i=0;i<N;i++){const a=i/N*Math.PI*2;
+   const rad=r*(1+.16*Math.sin(3*a+seed)+.11*Math.cos(5*a+seed*1.7)+.05*Math.sin(7*a+seed*2.3));
+   pts.push([cx+rad*Math.cos(a),cy+rad*Math.sin(a)*.72]);}
+ return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+' Z';
+}
+const PEAKS=[{x:255,y:150,r:34,label:'▲ 3,420 m'},{x:690,y:115,r:40,label:'▲ 3,880 m'},
+             {x:835,y:300,r:30,label:'▲ 2,960 m'},{x:150,y:470,r:28,label:'▲ 2,540 m'}];
+
+const TopoMap=({lang,t,shelters,onSelect,selected})=>(
+ <svg viewBox="0 0 1000 640" className="block h-auto w-full" role="img" aria-label={t('mapTitle')}>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="rgba(148,163,184,0.05)"/></pattern>
+    <linearGradient id="riverG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stopColor="#60A5FA"/><stop offset="1" stopColor="#3B82F6"/></linearGradient>
+    <radialGradient id="vig" cx="50%" cy="45%" r="78%">
+      <stop offset="62%" stopColor="rgba(10,13,20,0)"/><stop offset="100%" stopColor="rgba(10,13,20,0.55)"/></radialGradient>
+  </defs>
+  <rect width="1000" height="640" fill="#0B101C"/><rect width="1000" height="640" fill="url(#grid)"/>
+
+  {/* elevation contours */}
+  {PEAKS.map((p,pi)=>[1,1.9,2.8,3.8].map((k,i)=>(
+    <path key={pi+'-'+i} d={contour(p.x,p.y,p.r*k,pi*2.3+i)} fill="none"
+          stroke={`rgba(148,163,184,${(0.15-i*0.025).toFixed(3)})`} strokeWidth="1"/>)))}
+  {PEAKS.map((p,i)=>(<g key={i} transform={`translate(${p.x-6},${p.y})`}>
+      <path d="M6 2 L11 -7 L16 2 Z" fill="#94A3B8" opacity=".8"/>
+      <text className="plabel" x="6" y="16" textAnchor="middle">{p.label}</text></g>))}
+
+  {/* risk zones */}
+  <path className="anim-zone" d="M258 328 C330 284 470 292 528 356 C578 410 566 492 490 522 C400 556 296 532 252 468 C222 424 222 358 258 328 Z"
+        fill="#F59E0B" stroke="#F59E0B" strokeOpacity=".35" strokeDasharray="5 5"/>
+  <path className="anim-zone" d="M300 352 C345 322 430 330 472 372 C512 412 500 468 448 486 C388 506 318 486 292 442 C272 408 276 372 300 352 Z"
+        fill="#EF4444" stroke="#EF4444" strokeOpacity=".5" strokeDasharray="5 5" style={{animationDelay:'1.2s'}}/>
+  <path d="M600 66 C680 40 780 52 812 108 C838 154 800 208 724 214 C648 220 588 186 578 138 C572 104 570 80 600 66 Z" fill="#10B981" fillOpacity=".12" stroke="#10B981" strokeOpacity=".3" strokeDasharray="5 5"/>
+  <path d="M96 300 C150 272 214 284 232 330 C248 372 214 416 158 420 C110 424 74 396 74 356 C74 330 78 314 96 300 Z" fill="#10B981" fillOpacity=".10" stroke="#10B981" strokeOpacity=".25" strokeDasharray="5 5"/>
+  <text className="zlabel" x="380" y="420" fill="#F87171" textAnchor="middle">{t('lgHigh').toUpperCase()}</text>
+  <text className="zlabel" x="298" y="512" fill="#FBBF24" textAnchor="middle">{t('lgMod').toUpperCase()}</text>
+  <text className="zlabel" x="700" y="142" fill="#34D399" textAnchor="middle">{t('lgSafe').toUpperCase()}</text>
+
+  {/* road NH-58 */}
+  <path d="M200 250 C300 280 420 300 470 300 C560 300 620 380 640 460 C655 510 660 560 660 620"
+        fill="none" stroke="#475569" strokeWidth="2" strokeDasharray="6 6" opacity=".55"/>
+  <text className="plabel" x="520" y="312">NH-58</text>
+
+  {/* rivers */}
+  <path d="M150 40 C180 120 260 160 300 230 C340 300 300 360 360 420 C420 480 560 470 620 520 C680 570 800 580 900 620"
+        fill="none" stroke="rgba(59,130,246,.22)" strokeWidth="7" strokeLinecap="round"/>
+  <path className="anim-flow" d="M150 40 C180 120 260 160 300 230 C340 300 300 360 360 420 C420 480 560 470 620 520 C680 570 800 580 900 620"
+        fill="none" stroke="url(#riverG)" strokeWidth="2.5" strokeDasharray="12 18" strokeLinecap="round"/>
+  <path d="M520 60 C500 140 420 200 380 260 C350 305 335 335 322 380" fill="none" stroke="rgba(59,130,246,.22)" strokeWidth="5" strokeLinecap="round"/>
+  <path className="anim-flow" d="M520 60 C500 140 420 200 380 260 C350 305 335 335 322 380" fill="none" stroke="url(#riverG)" strokeWidth="2" strokeDasharray="12 18" style={{animationDelay:'-1s'}}/>
+  <path d="M860 120 C800 180 700 240 640 320 C600 370 610 450 620 520" fill="none" stroke="rgba(59,130,246,.22)" strokeWidth="5" strokeLinecap="round"/>
+  <path className="anim-flow" d="M860 120 C800 180 700 240 640 320 C600 370 610 450 620 520" fill="none" stroke="url(#riverG)" strokeWidth="2" strokeDasharray="12 18" style={{animationDelay:'-2s'}}/>
+  <text className="rlabel" transform="translate(505,455) rotate(14)">अलकनंदा · Alaknanda</text>
+  <text className="rlabel" transform="translate(742,225) rotate(-33)">भागीरथी · Bhagirathi</text>
+  <text className="plabel" x="600" y="545">देवप्रयाग · Devprayag</text>
+
+  {/* radar sweep over NDRF base */}
+  <circle cx="430" cy="468" r="66" fill="none" stroke="#3B82F6" opacity=".15"/>
+  <line x1="430" y1="468" x2="430" y2="404" stroke="#3B82F6" strokeWidth="1.5" opacity=".5">
+    <animateTransform attributeName="transform" type="rotate" from="0 430 468" to="360 430 468" dur="6s" repeatCount="indefinite"/>
+  </line>
+
+  {/* markers */}
+  {MARKERS.map(m=>{const meta=TYPE_META[m.type];const act=selected&&selected.id===m.id;
+    return (
+    <g key={m.id} className="marker" transform={`translate(${m.x},${m.y})`} onClick={()=>onSelect(m)}>
+      {m.type==='block' && <circle r="16" fill={meta.color} opacity=".28" className="anim-blink"/>}
+      <circle r={act?13:11} fill="#0A0D14" stroke={meta.color} strokeWidth={act?3:2} style={{transition:'all .2s'}}/>
+      <svg x="-6.5" y="-6.5" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">{P[meta.icon]}</svg>
+      <text className="mtext" y="27" textAnchor="middle">{m.name[lang]}</text>
+    </g>);})}
+  <rect width="1000" height="640" fill="url(#vig)" pointerEvents="none"/>
+ </svg>);
+
+/* ══════════════ CITIZEN · MAP PANEL ══════════════ */
+const MapPanel=({lang,t,shelters,openSos})=>{
+ const [sel,setSel]=useState(null);
+ const free = sel&&sel.shelter ? (()=>{const s=shelters.find(x=>x.id===sel.shelter);return s?s.cap-s.occ:null})() : null;
+ return (
+ <section className="glass anim-rise relative overflow-hidden rounded-2xl" style={{animationDelay:'120ms'}}>
+   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/30 px-4 py-3">
+     <div><h2 className="font-display text-lg font-bold tracking-wide text-slate-50">{t('mapTitle')}</h2>
+          <p className="text-[11px] text-slate-500">{t('mapSub')}</p></div>
+     <div className="flex items-center gap-2">
+       <Chip color="#3B82F6"><span className="anim-blink inline-block h-1.5 w-1.5 rounded-full bg-accent"/>{t('liveTel')}</Chip>
+       <Chip color="#475569">SRTM DEM · 1:50k</Chip>
+     </div>
+   </div>
+   <div className="relative">
+     <TopoMap lang={lang} t={t} shelters={shelters} onSelect={m=>setSel(m)} selected={sel}/>
+     {/* marker detail popup */}
+     {sel && (
+     <div className="glass anim-slidein absolute left-3 top-3 z-20 w-[270px] rounded-xl p-3.5 shadow-2xl">
+       <div className="flex items-start justify-between gap-2">
+         <Chip color={TYPE_META[sel.type].color}>{t(TYPE_META[sel.type].label)}</Chip>
+         <button onClick={()=>setSel(null)} aria-label="close" className="btn-press text-slate-400 hover:text-white"><Icon name="x" className="h-4 w-4"/></button>
+       </div>
+       <h3 className="mt-2 font-display text-[15px] font-bold leading-tight text-slate-50">{sel.name[lang]}</h3>
+       <p className="mt-1 text-[12px] leading-snug text-slate-300">{sel.desc[lang]}</p>
+       {free!==null && <p className="mt-2 flex items-center gap-1.5 text-[12px] font-bold text-safe">
+          <Icon name="tent" className="h-3.5 w-3.5"/>{free} {t('bedsLive')}</p>}
+       <p className="mt-2 flex items-center gap-1.5 font-mono text-[10.5px] text-slate-500">
+          <Icon name="mapPin" className="h-3 w-3"/>{sel.coord}</p>
+     </div>)}
+     {/* legend */}
+     <div className="glass-soft absolute bottom-4 left-3 z-10 flex flex-col gap-1.5 rounded-xl px-3 py-2.5 text-[11px] font-medium text-slate-300">
+       <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-danger"/> {t('lgHigh')}</span>
+       <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-warn"/> {t('lgMod')}</span>
+       <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-safe"/> {t('lgSafe')}</span>
+     </div>
+     {/* SOS BUTTON */}
+     <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+       <button onClick={openSos} aria-label={t('sosBtn')}
+         className="btn-press relative grid h-[84px] w-[84px] place-items-center rounded-full border border-red-300/40 bg-gradient-to-b from-[#F87171] to-[#DC2626] shadow-[0_12px_44px_rgba(239,68,68,.55)]">
+         <span className="absolute inset-0 animate-ping rounded-full bg-red-500/40"/>
+         <span className="relative flex flex-col items-center leading-none">
+           <Icon name="siren" className="mb-1 h-5 w-5 text-white"/>
+           <span className="font-display text-lg font-bold tracking-[.2em] text-white">SOS</span>
+         </span>
+       </button>
+       <span className="glass-soft rounded-full px-3.5 py-1 text-[11px] font-bold tracking-wide text-red-200">{t('sosBtn')}</span>
+     </div>
+   </div>
+ </section>);
+};
+
+/* ══════════════ SIDEBAR · SHELTERS + DIRECTORY ══════════════ */
+const Sidebar=({lang,t,shelters})=>(
+ <aside className="flex flex-col gap-4">
+  <section className="glass anim-rise rounded-2xl p-4" style={{animationDelay:'160ms'}}>
+    <div className="flex items-center justify-between">
+      <h2 className="flex items-center gap-2 font-display text-lg font-bold tracking-wide text-slate-50">
+        <Icon name="tent" className="h-4.5 w-[18px] text-safe"/>{t('sheltersTitle')}</h2>
+      <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-safe">
+        <span className="anim-blink h-1.5 w-1.5 rounded-full bg-safe"/>{t('live')}</span>
+    </div>
+    <div className="mt-3 flex flex-col gap-3">
+     {shelters.map(s=>{const free=s.cap-s.occ,pct=Math.round(s.occ/s.cap*100);
+       const c=pct>=90?'#EF4444':pct>=70?'#F59E0B':'#10B981';
+       return (
+       <article key={s.id} className="glass-soft rounded-xl p-3 transition hover:border-slate-500/40">
+         <div className="flex items-start justify-between gap-2">
+           <div><h3 className="text-[13px] font-bold leading-tight text-slate-100">{s.name[lang]}</h3>
+                <p className="text-[10.5px] text-slate-500">{s.area[lang]}</p></div>
+           <p className="font-display text-xl font-bold leading-none" style={{color:c}}>{free}
+              <span className="ml-1 align-middle text-[9px] font-semibold uppercase tracking-wide text-slate-400">{t('beds')}</span></p>
+         </div>
+         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
+           <div className="h-full rounded-full" style={{width:`${pct}%`,background:c,transition:'width 1s ease'}}/></div>
+         <div className="mt-1.5 flex justify-between text-[10px] text-slate-500">
+           <span>{t('occLbl')} <b className="font-mono text-slate-300">{pct}%</b></span>
+           <span>{t('capLbl')} <b className="font-mono text-slate-300">{s.cap}</b></span></div>
+       </article>);})}
+    </div>
+  </section>
+
+  <section className="glass anim-rise rounded-2xl p-4" style={{animationDelay:'220ms'}}>
+    <h2 className="flex items-center gap-2 font-display text-lg font-bold tracking-wide text-slate-50">
+      <Icon name="phone" className="h-[18px] w-[18px] text-danger"/>{t('dirTitle')}</h2>
+    <div className="mt-3 flex flex-col gap-2.5">
+      {[{label:t('h1078'),num:'1078',c:'#EF4444',big:true},
+        {label:t('h1070'),num:'1070',c:'#F59E0B'},
+        {label:t('hAir'),num:'1800-11-0192',c:'#3B82F6'}].map(h=>(
+        <a key={h.num} href={`tel:${h.num.replace(/[^0-9+]/g,'')}`}
+           className="btn-press group flex items-center justify-between rounded-xl border px-3.5 py-2.5 transition"
+           style={{borderColor:h.c+'44',background:h.c+'12'}}>
+          <span className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-lg" style={{background:h.c+'26'}}>
+              <Icon name="phone" className="h-4 w-4" style={{color:h.c}}/></span>
+            <span className="text-[12.5px] font-semibold text-slate-100">{h.label}</span></span>
+          <span className="font-display text-lg font-bold tracking-wider" style={{color:h.c}}>{h.num}</span>
+        </a>))}
+    </div>
+  </section>
+ </aside>);
+
+/* ══════════════ SOS MODAL ══════════════ */
+const SOSModal=({lang,t,onClose,onSubmit})=>{
+ const [form,setForm]=useState({name:'',phone:'',sit:'water',people:1,landmark:''});
+ const [gps,setGps]=useState({status:'locating',coord:''});
+ const [err,setErr]=useState('');
+ useEffect(()=>{
+   let alive=true;
+   if(!navigator.geolocation){setGps({status:'fail',coord:''});return;}
+   navigator.geolocation.getCurrentPosition(
+     p=>{if(alive)setGps({status:'ok',coord:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`})},
+     ()=>{if(alive)setGps({status:'fail',coord:''})},
+     {timeout:7000,maximumAge:60000});
+   return ()=>{alive=false};
+ },[]);
+ useEffect(()=>{const h=e=>{if(e.key==='Escape')onClose()};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)},[]);
+ const submit=e=>{
+   e.preventDefault();
+   if(!form.name.trim())return setErr(t('errName'));
+   if(!/^[+\d][\d\s-]{9,14}$/.test(form.phone.trim()))return setErr(t('errPhone'));
+   if(gps.status!=='ok'&&!form.landmark.trim())return setErr(t('errLoc'));
+   const pr=form.sit==='water'?(form.people>=5?'critical':'high'):form.sit==='landslide'?'high':(form.people>=3?'high':'medium');
+   onSubmit({id:'SOS-'+(7850+Math.floor(Math.random()*900)),ts:Date.now(),name:form.name.trim(),phone:form.phone.trim(),
+     sit:form.sit,people:form.people,loc:form.landmark.trim()||'GPS point',gps:gps.coord,priority:pr,status:'new'});
+ };
+ const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+ return (
+ <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose} role="dialog" aria-modal="true">
+  <form onClick={e=>e.stopPropagation()} onSubmit={submit}
+        className="glass anim-rise w-full max-w-lg overflow-hidden rounded-2xl shadow-2xl">
+    <div className="flex items-center justify-between bg-gradient-to-r from-danger/25 via-danger/10 to-transparent px-5 py-3.5">
+      <h2 className="flex items-center gap-2.5 font-display text-xl font-bold text-red-200">
+        <Icon name="siren" className="h-5 w-5 text-danger anim-blink"/>{t('mTitle')}</h2>
+      <button type="button" onClick={onClose} aria-label="close" className="btn-press text-slate-400 hover:text-white"><Icon name="x" className="h-5 w-5"/></button>
+    </div>
+    <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+      <p className="text-[12px] text-slate-400">{t('mDesc')}</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div><label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">{t('fName')}</label>
+          <input className="input-dark" value={form.name} onChange={e=>set('name',e.target.value)} placeholder={t('phName')}/></div>
+        <div><label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">{t('fContact')}</label>
+          <input className="input-dark font-mono" inputMode="tel" value={form.phone} onChange={e=>set('phone',e.target.value)} placeholder={t('phContact')}/></div>
+      </div>
+      <label className="mb-1.5 mt-4 block text-[11px] font-bold uppercase tracking-wider text-slate-400">{t('fSituation')}</label>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {SITUATIONS.map(s=>{const on=form.sit===s.id;
+          return <button type="button" key={s.id} onClick={()=>set('sit',s.id)}
+            className="btn-press flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition"
+            style={{borderColor:on?s.tint:'rgba(148,163,184,.15)',background:on?s.tint+'1a':'#0D1220'}}>
+            <Icon name={s.icon} className="h-5 w-5" style={{color:s.tint}}/>
+            <span className={`text-[11.5px] font-semibold leading-tight ${on?'text-slate-50':'text-slate-400'}`}>{t(s.key)}</span>
+          </button>;})}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div><label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">{t('fPeople')}</label>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={()=>set('people',Math.max(1,form.people-1))} className="btn-press grid h-9 w-9 place-items-center rounded-lg border border-slate-600/50 bg-[#0D1220] text-slate-300 hover:text-white"><Icon name="minus" className="h-4 w-4"/></button>
+            <span className="min-w-[52px] text-center font-display text-2xl font-bold text-slate-50">{form.people}</span>
+            <button type="button" onClick={()=>set('people',Math.min(200,form.people+1))} className="btn-press grid h-9 w-9 place-items-center rounded-lg border border-slate-600/50 bg-[#0D1220] text-slate-300 hover:text-white"><Icon name="plus" className="h-4 w-4"/></button>
+          </div></div>
+        <div><label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">GPS</label>
+          <div className={`flex h-9 items-center gap-2 rounded-lg border px-3 text-[12px] font-semibold ${
+            gps.status==='ok'?'border-safe/40 bg-safe/10 text-safe':
+            gps.status==='locating'?'border-accent/40 bg-accent/10 text-accent':'border-warn/40 bg-warn/10 text-warn'}`}>
+            <Icon name={gps.status==='fail'?'alert':'locate'} className={`h-4 w-4 ${gps.status==='locating'?'animate-pulse':''}`}/>
+            {gps.status==='ok'?<span className="font-mono">{gps.coord} · {t('gpsOk')}</span>:gps.status==='locating'?t('gpsLocating'):t('gpsFail')}
+          </div></div>
+      </div>
+      <div className="mt-3"><label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">{t('fLandmark')}</label>
+        <input className="input-dark" value={form.landmark} onChange={e=>set('landmark',e.target.value)} placeholder={t('phLandmark')}/></div>
+      {err && <p className="mt-3 flex items-center gap-1.5 text-[12px] font-semibold text-danger"><Icon name="alert" className="h-3.5 w-3.5"/>{err}</p>}
+      <button type="submit" className="btn-press mt-5 flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-[#F87171] to-[#DC2626] py-3.5 font-display text-lg font-bold tracking-wide text-white shadow-[0_8px_30px_rgba(239,68,68,.45)]">
+        <Icon name="send" className="h-5 w-5"/>{t('send')}
+      </button>
+    </div>
+  </form>
+ </div>);
+};
+
+/* ══════════════ COMMANDER DASHBOARD ══════════════ */
+const StatTile=({icon,color,label,value,delay})=>(
+ <div className="glass anim-rise rounded-2xl p-4" style={{animationDelay:delay}}>
+   <div className="flex items-center gap-3">
+     <span className="grid h-10 w-10 place-items-center rounded-xl" style={{background:color+'1c'}}>
+       <Icon name={icon} className="h-5 w-5" style={{color}}/></span>
+     <div><p className="font-display text-[28px] font-bold leading-none text-slate-50">{value}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p></div>
+   </div>
+ </div>);
+
+const AlertCard=({a,lang,t,now,onDispatch,onEvac})=>{
+ const sit=SITUATIONS.find(s=>s.id===a.sit),pr=PRIO[a.priority];
+ const mins=Math.max(0,Math.round((now-a.ts)/60000));
+ return (
+ <article className="glass anim-rise rounded-xl p-3.5" style={{borderLeft:`4px solid ${pr.color}`}}>
+   <div className="flex flex-wrap items-center justify-between gap-2">
+     <span className="flex items-center gap-2">
+       <span className="grid h-8 w-8 place-items-center rounded-lg" style={{background:sit.tint+'1c'}}>
+         <Icon name={sit.icon} className="h-4 w-4" style={{color:sit.tint}}/></span>
+       <span className="text-[13px] font-bold text-slate-100">{t(sit.key)}</span>
+     </span>
+     <span className="flex items-center gap-1.5">
+       <Chip color={pr.color}>{t(pr.key)}</Chip>
+       <span className="font-mono text-[10.5px] text-slate-500">{mins===0?t('justNow'):mins+' '+t('minAgo')}</span>
+     </span>
+   </div>
+   <div className="mt-2.5 grid gap-1 text-[12.5px] text-slate-300 sm:grid-cols-2">
+     <span className="flex items-center gap-1.5"><Icon name="user" className="h-3.5 w-3.5 text-slate-500"/>{a.name} · <span className="font-mono text-slate-400">{a.phone}</span></span>
+     <span className="flex items-center gap-1.5"><Icon name="users" className="h-3.5 w-3.5 text-slate-500"/>{a.people} {t('people')}</span>
+     <span className="flex items-center gap-1.5"><Icon name="mapPin" className="h-3.5 w-3.5 text-slate-500"/>{a.loc}</span>
+     {a.gps && <span className="font-mono text-[11px] text-slate-500">{a.gps}</span>}
+   </div>
+   <div className="mt-3 flex flex-wrap items-center gap-2">
+     {a.status==='new' && <><Chip color="#EF4444" blink>{t('sNew')}</Chip>
+        <button onClick={()=>onDispatch(a.id)} className="btn-press flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-bold text-white shadow">
+          <Icon name="truck" className="h-3.5 w-3.5"/>{t('dispatch')}</button></>}
+     {a.status==='dispatched' && <><Chip color="#F59E0B">{t('sDispatched')} · {a.team}</Chip>
+        <button onClick={()=>onEvac(a.id)} className="btn-press flex items-center gap-1.5 rounded-lg bg-safe px-3 py-1.5 text-[12px] font-bold text-[#04150e]">
+          <Icon name="checkCircle" className="h-3.5 w-3.5"/>{t('markEvac')}</button></>}
+     {a.status==='evacuated' && <Chip color="#10B981"><Icon name="checkCircle" className="h-3 w-3"/>{t('sEvacuated')}</Chip>}
+     <span className="ml-auto font-mono text-[10px] text-slate-600">{a.id}</span>
+   </div>
+ </article>);
+};
+
+const CommanderView=({alerts,teams,setTeams,t,lang,onSiren,pushToast,risk})=>{
+ const [filter,setFilter]=useState('all');
+ const now=Date.now();
+ const sorted=useMemo(()=>{
+   const f=filter==='all'?alerts:alerts.filter(a=>a.priority===filter);
+   return [...f].sort((a,b)=>PRIO[b.priority].w-PRIO[a.priority].w||(b.ts-a.ts));},[alerts,filter]);
+ const active=alerts.filter(a=>a.status!=='evacuated').length;
+ const deployed=teams.filter(x=>x.status==='deployed').length;
+ const evac=214+alerts.filter(a=>a.status==='evacuated').reduce((n,a)=>n+a.people,0);
+ const dispatch=id=>{
+   const idx=teams.findIndex(x=>x.status==='standby');
+   const teamName=idx>=0?teams[idx].name:'NDRF Reserve';
+   if(idx>=0)setTeams(ts=>ts.map((x,i)=>i===idx?{...x,status:'deployed'}:x));
+   onDispatchAlert(id,teamName);};
+ const download=()=>{
+   const head=['ID','Timestamp','Name','Contact','Situation','People','Priority','Status','Team','Location','GPS'];
+   const rows=alerts.map(a=>[a.id,new Date(a.ts).toISOString(),a.name,a.phone,a.sit,a.people,a.priority,a.status,a.team||'',
+     '"'+(a.loc||'').replace(/"/g,'""')+'"',a.gps||'']);
+   const csv='\uFEFF'+[head,...rows].map(r=>r.join(',')).join('\n');
+   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+   const el=document.createElement('a');el.href=url;el.download='himalayaguard_incident_report.csv';el.click();
+   URL.revokeObjectURL(url);pushToast(t('toastReport'),'ok','download');};
+ return (
+ <main className="mx-auto max-w-[1600px] px-4 py-5">
+   <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+     <div><h2 className="font-display text-2xl font-bold tracking-wide text-slate-50">{t('cmdHead')}</h2>
+          <p className="text-[12px] text-slate-500">{t('cmdSub')}</p></div>
+     <Chip color={risk>=75?'#EF4444':'#F59E0B'} blink>{t('watchPill')} · AI {risk}%</Chip>
+   </div>
+   <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+     <StatTile icon="bell"   color="#EF4444" label={t('stActive')} value={active} delay="0ms"/>
+     <StatTile icon="truck"  color="#3B82F6" label={t('stTeams')}  value={deployed+4} delay="60ms"/>
+     <StatTile icon="users"  color="#10B981" label={t('stEvac')}   value={evac} delay="120ms"/>
+     <StatTile icon="clock"  color="#F59E0B" label={t('stResp')}   value="18 min" delay="180ms"/>
+   </div>
+   <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+     <section className="glass anim-rise rounded-2xl p-4" style={{animationDelay:'120ms'}}>
+       <div className="flex flex-wrap items-center justify-between gap-2">
+         <h3 className="flex items-center gap-2 font-display text-lg font-bold tracking-wide text-slate-50">
+           <span className="anim-blink h-2 w-2 rounded-full bg-danger"/>{t('feedTitle')}</h3>
+         <div className="flex gap-1.5">
+           {['all','critical','high','medium'].map(f=>(
+             <button key={f} onClick={()=>setFilter(f)}
+               className={`btn-press rounded-full px-3 py-1 text-[11px] font-bold ${filter===f?'bg-slate-100 text-[#0A0D14]':'glass-soft text-slate-300 hover:text-white'}`}>
+               {f==='all'?t('all'):t(PRIO[f].key)}</button>))}
+         </div>
+       </div>
+       <div className="mt-3 flex flex-col gap-3">
+         {sorted.length===0 && <p className="py-8 text-center text-sm text-slate-500">{t('noSos')}</p>}
+         {sorted.map(a=><AlertCard key={a.id} a={a} lang={lang} t={t} now={now} onDispatch={dispatch}
+            onEvac={id=>onEvacAlert(id)}/>)}
+       </div>
+     </section>
+     <aside className="flex flex-col gap-4">
+       <section className="glass anim-rise rounded-2xl p-4" style={{animationDelay:'180ms'}}>
+         <button onClick={onSiren} className="btn-press flex w-full items-center justify-center gap-2.5 rounded-xl border border-danger/50 bg-gradient-to-b from-danger/30 to-danger/10 py-4 font-display text-base font-bold tracking-wide text-red-200 shadow-[0_0_30px_rgba(239,68,68,.18)]">
+           <Icon name="siren" className="h-5 w-5 anim-blink"/>{t('siren')}</button>
+         <button onClick={download} className="btn-press mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600/40 bg-[#0D1220] py-3 text-[13px] font-bold text-slate-200 hover:border-accent/60">
+           <Icon name="download" className="h-4 w-4 text-accent"/>{t('report')}</button>
+       </section>
+       <section className="glass anim-rise rounded-2xl p-4" style={{animationDelay:'240ms'}}>
+         <h3 className="font-display text-base font-bold tracking-wide text-slate-50">{t('rosterTitle')}</h3>
+         <div className="mt-2.5 flex flex-col gap-2">
+           {teams.map(x=>(
+             <div key={x.name} className="glass-soft flex items-center justify-between rounded-lg px-3 py-2">
+               <span className="text-[12px] font-semibold text-slate-200">{x.name}</span>
+               <Chip color={x.status==='deployed'?'#F59E0B':'#10B981'}>{x.status==='deployed'?t('deployed'):t('standby')}</Chip>
+             </div>))}
+           <div className="glass-soft flex items-center justify-between rounded-lg px-3 py-2">
+             <span className="text-[12px] font-semibold text-slate-200">MI-17 · Jolly Grant</span>
+             <Chip color="#3B82F6">{t('airReady')}</Chip></div>
+         </div>
+       </section>
+     </aside>
+   </div>
+ </main>);
+};
+
+/* ══════════════ SIREN OVERLAY ══════════════ */
+const SirenOverlay=({t,onClose})=>{
+ const stop=useRef(false);
+ useEffect(()=>{try{
+   const ctx=new (window.AudioContext||window.webkitAudioContext)();
+   const o=ctx.createOscillator(),g=ctx.createGain();o.type='sawtooth';o.connect(g);g.connect(ctx.destination);
+   g.gain.value=.05;const nowT=ctx.currentTime;
+   for(let i=0;i<3;i++){o.frequency.setValueAtTime(640,nowT+i*1.1);o.frequency.linearRampToValueAtTime(960,nowT+i*1.1+.55);o.frequency.linearRampToValueAtTime(640,nowT+i*1.1+1.1);}
+   o.start(nowT);o.stop(nowT+3.35);stop.current=()=>{try{o.stop()}catch(e){}};
+ }catch(e){} const id=setTimeout(onClose,6500);return()=>{clearTimeout(id);if(stop.current)stop.current()}},[]);
+ return (
+ <div className="fixed inset-0 z-[60] grid place-items-center bg-[#1a0505]/85 p-4 backdrop-blur-sm">
+   <div className="glass w-full max-w-lg rounded-2xl border-2 border-danger p-6 text-center" style={{animation:'sirenFlash 1s ease-in-out infinite'}}>
+     <Icon name="siren" className="mx-auto h-12 w-12 text-danger"/>
+     <h2 className="mt-3 font-display text-3xl font-bold tracking-wide text-red-300">{t('sirenTitle')}</h2>
+     <p className="mt-1 text-sm font-bold text-warn">{t('sirenZone')}</p>
+     <p className="mt-3 text-[13.5px] leading-relaxed text-slate-200">{t('sirenSub')}</p>
+     <button onClick={onClose} className="btn-press mt-5 rounded-xl bg-danger px-6 py-2.5 font-display text-base font-bold text-white">{t('ack')}</button>
+   </div>
+ </div>);
+};
+
+/* ══════════════ ROOT APP ══════════════ */
+function App(){
+ const [lang,setLangState]=useState(lsGet('hg_lang','en'));
+ const setLang=l=>{setLangState(l);lsSet('hg_lang',l)};
+ const t=k=>(L[lang][k]!==undefined?L[lang][k]:L.en[k]!==undefined?L.en[k]:k);
+ const [view,setView]=useState('citizen');
+ const [sosOpen,setSosOpen]=useState(false);
+ const [siren,setSiren]=useState(false);
+ const [toasts,setToasts]=useState([]);
+ const toastId=useRef(0);
+ const [tele,setTele]=useState({precip:90,cloud:.82,river:2.6,soil:86,slope:.31});
+ const hist=useRef({precip:[],river:[],soil:[]});
+ const [shelters,setShelters]=useState(SHELTERS);
+ const [alerts,setAlerts]=useState(()=>[...JSON.parse(lsGet('hg_user_sos','[]')),...SEED_SOS]);
+ const [teams,setTeams]=useState([{name:'NDRF-02 · Varanasi',status:'standby'},{name:'NDRF-12 · Bhatni',status:'deployed'},
+   {name:'SDRF Unit-04 · Pauri',status:'standby'},{name:'Helo Task Force · Phata',status:'standby'}]);
+ const simDone=useRef(false);
+
+ const pushToast=(msg,type='info',icon)=>{const id=++toastId.current;setToasts(x=>[...x,{id,msg,type,icon}]);};
+ const dismiss=id=>setToasts(x=>x.filter(t=>t.id!==id));
+
+ useEffect(()=>{document.documentElement.lang=lang;document.title=(lang==='hi'?'हिमालय गार्ड':'HimalayaGuard AI')+' · SIH 26192 · NDRF'},[lang]);
+
+ /* live telemetry simulation */
+ useEffect(()=>{
+   const id=setInterval(()=>{setTele(x=>{
+     const n={precip:clamp(x.precip+rnd(-3,3),68,112),cloud:clamp(x.cloud+rnd(-.03,.03),.6,.97),
+       river:clamp(x.river+rnd(-.09,.1),1.6,3.4),soil:clamp(x.soil+rnd(-1.2,1.2),74,95),slope:clamp(x.slope+rnd(-.02,.02),.18,.5)};
+     hist.current.precip=[...hist.current.precip,n.precip].slice(-24);
+     hist.current.river=[...hist.current.river,n.river].slice(-24);
+     hist.current.soil=[...hist.current.soil,n.soil].slice(-24);
+     return n;});},2500);
+   return()=>clearInterval(id);},[]);
+ /* shelter occupancy drift */
+ useEffect(()=>{const id=setInterval(()=>setShelters(ss=>ss.map(s=>{
+     const occ=clamp(s.occ+Math.round(rnd(-2,2)),Math.round(s.cap*.4),Math.round(s.cap*.97));return {...s,occ};}));},6000);
+   return()=>clearInterval(id);},[]);
+ /* scripted incoming SOS */
+ useEffect(()=>{const id=setTimeout(()=>{if(simDone.current)return;simDone.current=true;
+     setAlerts(a=>[{id:'SOS-7852',ts:Date.now(),name:'Anil Semwal',phone:'9634007812',sit:'water',people:3,
+       loc:'Devprayag ghat steps',gps:'30.1465, 78.6088',priority:'high',status:'new'},...a]);
+     pushToast(t('toastNew')+' · Devprayag','danger','bell');},22000);
+   return()=>clearTimeout(id);},[lang]);
+
+ const risk=useMemo(()=>{const pn=(tele.precip-40)/80,rn=tele.river/4,sn=(tele.soil-50)/50;
+   return clamp(Math.round(135*(.45*pn+.3*rn+.25*sn)),5,99)},[tele]);
+ const eta=clamp(Math.round(180-risk),45,150);
+
+ const submitSOS=a=>{DB.collection().add(a);setAlerts(x=>[a,...x]);setSosOpen(false);pushToast(t('toastSos'),'ok','send');};
+ const dispatchAlert=(id,team)=>{setAlerts(x=>x.map(a=>a.id===id?{...a,status:'dispatched',team}:a));pushToast(t('toastDispatch'),'info','truck');};
+ const evacAlert=id=>{setAlerts(x=>x.map(a=>a.id===id?{...a,status:'evacuated'}:a));pushToast(t('toastEvac'),'ok','checkCircle');};
+ const fireSiren=()=>{setSiren(true);pushToast(t('toastSiren'),'warn','siren');};
+
+ const st=tele;
+ return (
+ <div lang={lang} className="font-body min-h-screen">
+   <Header lang={lang} setLang={setLang} view={view} setView={setView} risk={risk} t={t}/>
+   <Ticker lang={lang} t={t}/>
+
+   {view==='citizen' ? (
+   <main className="mx-auto max-w-[1600px] px-4 py-5">
+     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+       <div className="flex min-w-0 flex-col gap-4">
+         {/* multi-source feeds */}
+         <div>
+           <div className="mb-2.5 flex items-baseline justify-between">
+             <h2 className="font-display text-lg font-bold tracking-wide text-slate-50">{t('feedsTitle')}</h2>
+             <p className="text-[11px] text-slate-500">{t('feedsSub')}</p></div>
+           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+             <FeedCard delay="0ms" icon="satellite" sparkColor="#3B82F6" title={t('sat')} sub={t('satSub')}
+               value={st.precip.toFixed(1)} unit={lang==='hi'?'मिमी/घं':'mm/hr'}
+               status={st.precip>95?t('crit'):t('warn')} statusColor={st.precip>95?'#EF4444':'#F59E0B'}
+               spark={hist.current.precip} footL={t('satSub').split('·')[1]} footR={'CBX '+(st.cloud).toFixed(2)}/>
+             <FeedCard delay="60ms" icon="waves" sparkColor="#60A5FA" title={t('river')} sub={t('riverSub')}
+               value={(66+st.river).toFixed(1)} unit="m"
+               status={st.river>2.4?t('crit'):t('warn')} statusColor={st.river>2.4?'#EF4444':'#F59E0B'}
+               spark={hist.current.river} footL={'+'+st.river.toFixed(2)+' '+t('aboveDanger')} footR="CN 66.0 m"/>
+             <FeedCard delay="120ms" icon="layers" sparkColor="#F59E0B" title={t('soil')} sub={t('soilSub')}
+               value={st.soil.toFixed(0)} unit="%"
+               status={st.soil>85?t('crit'):st.soil>78?t('warn'):t('ok')}
+               statusColor={st.soil>85?'#EF4444':st.soil>78?'#F59E0B':'#10B981'}
+               spark={hist.current.soil} footL={t('soilSub').split('·')[1]} footR={'LSI '+(st.slope*100).toFixed(0)}/>
+             <GaugeCard delay="180ms" risk={risk} eta={eta} t={t}/>
+           </div>
+         </div>
+         <MapPanel lang={lang} t={t} shelters={shelters} openSos={()=>setSosOpen(true)}/>
+       </div>
+       <Sidebar lang={lang} t={t} shelters={shelters}/>
+     </div>
+   </main>)
+   :
+   (<CommanderView alerts={alerts} teams={teams} setTeams={setTeams} t={t} lang={lang} risk={risk}
+      onSiren={fireSiren} pushToast={pushToast}
+      onDispatchAlert={dispatchAlert} onEvacAlert={evacAlert}/>)}
+
+   <footer className="mt-6 border-t border-slate-800/70 px-4 py-5 text-center">
+     <p className="text-[12px] font-semibold text-slate-400">{t('footer1')}</p>
+     <p className="mt-1 text-[11px] text-slate-600">{t('footer2')} · Firebase-ready (collections: <span className="font-mono">sos_alerts, shelters</span>)</p>
+   </footer>
+
+   {sosOpen && <SOSModal lang={lang} t={t} onClose={()=>setSosOpen(false)} onSubmit={submitSOS}/>}
+   {siren && <SirenOverlay t={t} onClose={()=>setSiren(false)}/>}
+   <div className="fixed bottom-4 right-4 z-[70] flex w-[min(360px,90vw)] flex-col gap-2">
+     {toasts.map(x=><Toast key={x.id} t={x} dismiss={dismiss}/>)}
+   </div>
+ </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
